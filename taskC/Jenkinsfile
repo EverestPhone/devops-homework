@@ -1,0 +1,160 @@
+pipeline {
+    agent any
+
+    environment {
+        REPOA_URL      = 'https://github.com/YOUR_GITHUB_USERNAME/grpc.git'
+        REPOC_URL      = 'https://github.com/YOUR_GITHUB_USERNAME/doxygen-log-parser.git'
+        DOXYGEN_CONFIG = 'Doxyfile'
+        WARNINGS_FILE  = 'doxygen_warnings.log'
+        OUTPUT_ARCHIVE = 'doc.tar.gz'
+        OUTPUT_CSV     = 'doxygen_warnings.csv'
+    }
+
+    stages {
+
+        stage('Checkout RepoA') {
+            steps {
+                echo '==> Cloning forked grpc repository...'
+                dir('repoA') {
+                    git branch: 'master', url: "${env.REPOA_URL}"
+                }
+            }
+        }
+
+        stage('Generate Doxygen Config') {
+            steps {
+                dir('repoA') {
+                    echo '==> Generating default Doxygen configuration file...'
+                    sh 'doxygen -g ${DOXYGEN_CONFIG}'
+                }
+            }
+        }
+
+        stage('Adjust Doxygen Config') {
+            steps {
+                dir('repoA') {
+                    echo '==> Adjusting config: INPUT=src, HTML only, warnings enabled...'
+                    sh """
+                        # Set INPUT to src folder
+                        sed -i 's|^INPUT\\s*=.*|INPUT = src|' ${DOXYGEN_CONFIG}
+
+                        # Enable HTML output only
+                        sed -i 's|^GENERATE_HTML\\s*=.*|GENERATE_HTML = YES|' ${DOXYGEN_CONFIG}
+                        sed -i 's|^GENERATE_LATEX\\s*=.*|GENERATE_LATEX = NO|' ${DOXYGEN_CONFIG}
+                        sed -i 's|^GENERATE_RTF\\s*=.*|GENERATE_RTF = NO|' ${DOXYGEN_CONFIG}
+                        sed -i 's|^GENERATE_MAN\\s*=.*|GENERATE_MAN = NO|' ${DOXYGEN_CONFIG}
+                        sed -i 's|^GENERATE_XML\\s*=.*|GENERATE_XML = NO|' ${DOXYGEN_CONFIG}
+                        sed -i 's|^GENERATE_DOCBOOK\\s*=.*|GENERATE_DOCBOOK = NO|' ${DOXYGEN_CONFIG}
+
+                        # Enable warnings log output
+                        sed -i 's|^WARNINGS\\s*=.*|WARNINGS = YES|' ${DOXYGEN_CONFIG}
+                        sed -i 's|^WARN_IF_UNDOCUMENTED\\s*=.*|WARN_IF_UNDOCUMENTED = YES|' ${DOXYGEN_CONFIG}
+                        sed -i 's|^WARN_IF_DOC_ERROR\\s*=.*|WARN_IF_DOC_ERROR = YES|' ${DOXYGEN_CONFIG}
+                        sed -i 's|^WARN_LOGFILE\\s*=.*|WARN_LOGFILE = ${WARNINGS_FILE}|' ${DOXYGEN_CONFIG}
+
+                        echo '==> Config adjustments applied.'
+                    """
+                }
+            }
+        }
+
+        stage('Run Doxygen') {
+            steps {
+                dir('repoA') {
+                    echo '==> Running Doxygen...'
+                    sh 'doxygen ${DOXYGEN_CONFIG}'
+                    sh """
+                        echo '==> Warnings file:'
+                        ls -lh ${WARNINGS_FILE} || echo 'WARNING: No warnings file generated.'
+                    """
+                }
+            }
+        }
+
+        stage('Pack Documentation') {
+            steps {
+                dir('repoA') {
+                    echo '==> Packing HTML output into doc.tar.gz...'
+                    sh """
+                        if [ -d html ]; then
+                            tar -czf ../${OUTPUT_ARCHIVE} html/
+                            echo '==> Archive created.'
+                        else
+                            echo 'ERROR: html/ not found.'
+                            exit 1
+                        fi
+                    """
+                }
+            }
+        }
+
+        stage('Archive Documentation') {
+            steps {
+                echo '==> Archiving doc.tar.gz...'
+                archiveArtifacts artifacts: "${OUTPUT_ARCHIVE}", fingerprint: true
+            }
+        }
+
+        stage('Checkout RepoC') {
+            steps {
+                echo '==> Cloning doxygen log parser repository...'
+                dir('repoC') {
+                    git branch: 'main', url: "${env.REPOC_URL}"
+                }
+            }
+        }
+
+        stage('Install Python Dependencies') {
+            steps {
+                dir('repoC') {
+                    echo '==> Installing Python dependencies...'
+                    sh """
+                        if [ -f requirements.txt ]; then
+                            pip3 install --user -r requirements.txt
+                            echo '==> Dependencies installed.'
+                        else
+                            echo '==> No requirements.txt found, skipping pip install.'
+                        fi
+                    """
+                }
+            }
+        }
+
+        stage('Run Doxygen Log Parser') {
+            steps {
+                echo '==> Running Python log parser on warnings file...'
+                sh """
+                    WARNINGS_PATH=\$(pwd)/repoA/${WARNINGS_FILE}
+                    OUTPUT_PATH=\$(pwd)/${OUTPUT_CSV}
+
+                    if [ -f "\$WARNINGS_PATH" ]; then
+                        python3 repoC/doxygen_parser.py "\$WARNINGS_PATH" --output "\$OUTPUT_PATH"
+                        echo '==> Parser completed. CSV output:'
+                        cat "\$OUTPUT_PATH"
+                    else
+                        echo 'WARNING: Warnings file not found. Skipping parser.'
+                    fi
+                """
+            }
+        }
+
+        stage('Archive CSV Report') {
+            steps {
+                echo '==> Archiving warnings CSV report...'
+                archiveArtifacts artifacts: "${OUTPUT_CSV}", allowEmptyArchive: true, fingerprint: true
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ PipelineC completed. Documentation and warnings report archived.'
+        }
+        failure {
+            echo '❌ PipelineC failed. Check stage logs above.'
+        }
+        always {
+            cleanWs()
+        }
+    }
+}
