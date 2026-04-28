@@ -15,6 +15,7 @@ pipeline {
 
         stage('Checkout RepoA') {
             steps {
+                deleteDir()
                 bat """
                     @echo off
                     echo Cloning forked grpc repository (shallow clone for speed)...

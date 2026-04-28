@@ -16,6 +16,7 @@ pipeline {
             steps {
                 echo '==> Cloning forked grpc repository (shallow clone for speed)...'
                 dir('repoA') {
+                    deleteDir()
                     sh """
                         git clone --depth=1 --branch=master ${env.REPOA_URL} . && echo 'Repository cloned successfully'
                     """
@@ -101,10 +102,13 @@ pipeline {
             steps {
                 echo '==> Cloning doxygen log parser repository (shallow clone for speed)...'
                 dir('repoC') {
+                    deleteDir()
                     sh """
                         git clone --depth=1 --branch=main ${env.REPOC_URL} . && echo 'RepoC cloned successfully'
                     """
                 }
+            }
+        }
             }
         }
 
