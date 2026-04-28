@@ -16,10 +16,15 @@ pipeline {
         stage('Checkout RepoA') {
             steps {
                 bat """
+                    @echo off
                     echo Cloning forked grpc repository (shallow clone for speed)...
-                    git clone --depth=1 --branch=main %REPO_URL% .
-                    if errorlevel 1 exit /b 1
-                    echo Repository cloned successfully
+                    git clone --depth=1 --branch=main %REPO_URL% . && (
+                        echo Repository cloned successfully
+                        exit /b 0
+                    ) || (
+                        echo ERROR: Git clone failed
+                        exit /b 1
+                    )
                 """
             }
         }
