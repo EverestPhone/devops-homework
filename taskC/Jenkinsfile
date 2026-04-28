@@ -109,8 +109,6 @@ pipeline {
                 }
             }
         }
-            }
-        }
 
         stage('Install Python Dependencies') {
             steps {
