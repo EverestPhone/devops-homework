@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        REPOA_URL      = 'https://github.com/YOUR_GITHUB_USERNAME/grpc.git'
-        REPOC_URL      = 'https://github.com/YOUR_GITHUB_USERNAME/doxygen-log-parser.git'
+        REPOA_URL      = 'https://github.com/EverestPhone/grpc.git'
+        REPOC_URL      = 'https://github.com/EverestPhone/doxygen-log-parser.git'
         DOXYGEN_CONFIG = 'Doxyfile'
         WARNINGS_FILE  = 'doxygen_warnings.log'
         OUTPUT_ARCHIVE = 'doc.tar.gz'
