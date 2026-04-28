@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        REPO_URL       = 'https://github.com/YOUR_GITHUB_USERNAME/grpc.git'
+        REPO_URL       = 'https://github.com/EverestPhone/grpc.git'
         DOXYGEN_CONFIG = 'Doxyfile'
         OUTPUT_ARCHIVE = 'doc.tar.gz'
     }
