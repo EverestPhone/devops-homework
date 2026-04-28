@@ -1,0 +1,91 @@
+pipeline {
+    agent any
+
+    environment {
+        REPO_URL       = 'https://github.com/YOUR_GITHUB_USERNAME/grpc.git'
+        DOXYGEN_CONFIG = 'Doxyfile'
+        OUTPUT_ARCHIVE = 'doc.tar.gz'
+    }
+
+    stages {
+
+        stage('Checkout RepoA') {
+            steps {
+                echo '==> Cloning forked grpc repository...'
+                git branch: 'master', url: "${env.REPO_URL}"
+            }
+        }
+
+        stage('Generate Doxygen Config') {
+            steps {
+                echo '==> Generating default Doxygen configuration file...'
+                sh 'doxygen -g ${DOXYGEN_CONFIG}'
+            }
+        }
+
+        stage('Adjust Doxygen Config') {
+            steps {
+                echo '==> Adjusting Doxygen config: INPUT=src, HTML only...'
+                sh """
+                    # Set INPUT to src folder
+                    sed -i 's|^INPUT\\s*=.*|INPUT = src|' ${DOXYGEN_CONFIG}
+
+                    # Enable HTML output
+                    sed -i 's|^GENERATE_HTML\\s*=.*|GENERATE_HTML = YES|' ${DOXYGEN_CONFIG}
+
+                    # Disable all other output formats
+                    sed -i 's|^GENERATE_LATEX\\s*=.*|GENERATE_LATEX = NO|' ${DOXYGEN_CONFIG}
+                    sed -i 's|^GENERATE_RTF\\s*=.*|GENERATE_RTF = NO|' ${DOXYGEN_CONFIG}
+                    sed -i 's|^GENERATE_MAN\\s*=.*|GENERATE_MAN = NO|' ${DOXYGEN_CONFIG}
+                    sed -i 's|^GENERATE_XML\\s*=.*|GENERATE_XML = NO|' ${DOXYGEN_CONFIG}
+                    sed -i 's|^GENERATE_DOCBOOK\\s*=.*|GENERATE_DOCBOOK = NO|' ${DOXYGEN_CONFIG}
+
+                    echo '==> Doxygen config adjustments applied.'
+                    grep -E '^(INPUT|GENERATE_HTML|GENERATE_LATEX|GENERATE_RTF|GENERATE_MAN|GENERATE_XML)' ${DOXYGEN_CONFIG}
+                """
+            }
+        }
+
+        stage('Run Doxygen') {
+            steps {
+                echo '==> Running Doxygen documentation generation...'
+                sh 'doxygen ${DOXYGEN_CONFIG}'
+            }
+        }
+
+        stage('Pack Documentation') {
+            steps {
+                echo '==> Packing HTML output into doc.tar.gz...'
+                sh """
+                    if [ -d html ]; then
+                        tar -czf ${OUTPUT_ARCHIVE} html/
+                        echo '==> Archive created: ${OUTPUT_ARCHIVE}'
+                        ls -lh ${OUTPUT_ARCHIVE}
+                    else
+                        echo 'ERROR: html/ directory not found after doxygen run.'
+                        exit 1
+                    fi
+                """
+            }
+        }
+
+        stage('Archive Artifact') {
+            steps {
+                echo '==> Archiving doc.tar.gz as Jenkins artifact...'
+                archiveArtifacts artifacts: "${OUTPUT_ARCHIVE}", fingerprint: true
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ PipelineB completed successfully. Documentation archived.'
+        }
+        failure {
+            echo '❌ PipelineB failed. Check logs above.'
+        }
+        always {
+            cleanWs()
+        }
+    }
+}
