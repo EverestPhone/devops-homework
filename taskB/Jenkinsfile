@@ -15,7 +15,12 @@ pipeline {
 
         stage('Checkout RepoA') {
             steps {
-                git branch: 'main', url: "${env.REPO_URL}"
+                bat """
+                    echo Cloning forked grpc repository (shallow clone for speed)...
+                    git clone --depth=1 --branch=main %REPO_URL% .
+                    if errorlevel 1 exit /b 1
+                    echo Repository cloned successfully
+                """
             }
         }
 

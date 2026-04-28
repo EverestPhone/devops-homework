@@ -14,9 +14,11 @@ pipeline {
 
         stage('Checkout RepoA') {
             steps {
-                echo '==> Cloning forked grpc repository...'
+                echo '==> Cloning forked grpc repository (shallow clone for speed)...'
                 dir('repoA') {
-                    git branch: 'master', url: "${env.REPOA_URL}"
+                    sh """
+                        git clone --depth=1 --branch=master ${env.REPOA_URL} . && echo 'Repository cloned successfully'
+                    """
                 }
             }
         }
@@ -97,9 +99,11 @@ pipeline {
 
         stage('Checkout RepoC') {
             steps {
-                echo '==> Cloning doxygen log parser repository...'
+                echo '==> Cloning doxygen log parser repository (shallow clone for speed)...'
                 dir('repoC') {
-                    git branch: 'main', url: "${env.REPOC_URL}"
+                    sh """
+                        git clone --depth=1 --branch=main ${env.REPOC_URL} . && echo 'RepoC cloned successfully'
+                    """
                 }
             }
         }
