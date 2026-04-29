@@ -15,54 +15,27 @@ pipeline {
     }
 
     stages {
-
         stage('Checkout RepoA') {
             steps {
                 deleteDir()
                 bat """
                     @echo off
-                    echo =^>^> Cloning forked grpc repository (shallow clone for speed)...
-                    git clone --depth=1 --branch=master %REPOA_URL% repoA && (
-                        echo Repository cloned successfully
-                    ) || (
-                        echo ERROR: Git clone failed
-                        exit /b 1
-                    )
+                    echo => Cloning grpc repository...
+                    git clone --depth=1 --branch=master %REPOA_URL% repoA
                 """
             }
         }
 
-        stage('Generate Doxygen Config') {
+        stage('Generate & Adjust Doxygen Config') {
             steps {
                 bat """
                     @echo off
-                    echo =^>^> Generating default Doxygen configuration file...
                     cd repoA
                     doxygen -g %DOXYGEN_CONFIG%
-                    cd ..
-                """
-            }
-        }
-
-        stage('Adjust Doxygen Config') {
-            steps {
-                bat """
-                    @echo off
-                    echo =^>^> Adjusting config: INPUT=src, HTML only, warnings enabled...
-                    cd repoA
-                    
-                    REM Use PowerShell to modify Doxyfile with regex
                     powershell -Command "(Get-Content %DOXYGEN_CONFIG%) -replace '^INPUT\\s*=.*', 'INPUT = src' | Set-Content %DOXYGEN_CONFIG%"
                     powershell -Command "(Get-Content %DOXYGEN_CONFIG%) -replace '^GENERATE_HTML\\s*=.*', 'GENERATE_HTML = YES' | Set-Content %DOXYGEN_CONFIG%"
                     powershell -Command "(Get-Content %DOXYGEN_CONFIG%) -replace '^GENERATE_LATEX\\s*=.*', 'GENERATE_LATEX = NO' | Set-Content %DOXYGEN_CONFIG%"
-                    powershell -Command "(Get-Content %DOXYGEN_CONFIG%) -replace '^GENERATE_XML\\s*=.*', 'GENERATE_XML = NO' | Set-Content %DOXYGEN_CONFIG%"
-                    
-                    REM Enable warnings
                     powershell -Command "(Get-Content %DOXYGEN_CONFIG%) -replace '^WARN_LOGFILE\\s*=.*', 'WARN_LOGFILE = %WARNINGS_FILE%' | Set-Content %DOXYGEN_CONFIG%"
-                    powershell -Command "(Get-Content %DOXYGEN_CONFIG%) -replace '^EXTRACT_ALL\\s*=.*', 'EXTRACT_ALL = NO' | Set-Content %DOXYGEN_CONFIG%"
-                    
-                    echo =^>^> Config adjustments applied.
-                    cd ..
                 """
             }
         }
@@ -71,102 +44,44 @@ pipeline {
             steps {
                 bat """
                     @echo off
-                    echo =^>^> Running Doxygen...
                     cd repoA
                     doxygen %DOXYGEN_CONFIG%
-                    if exist %WARNINGS_FILE% (
-                        echo =^>^> Warnings file found
-                        dir %WARNINGS_FILE%
-                    ) else (
-                        echo WARNING: No warnings file generated
-                    )
-                    cd ..
                 """
             }
         }
 
-        stage('Pack Documentation') {
+        stage('Pack & Archive Documentation') {
             steps {
                 bat """
                     @echo off
-                    echo =^>^> Packing HTML output into doc.tar.gz...
                     cd repoA
                     if exist html (
                         tar -czf ../%OUTPUT_ARCHIVE% html
-                        echo =^>^> Archive created
-                        cd ..
-                        dir %OUTPUT_ARCHIVE%
+                    )
+                """
+                archiveArtifacts artifacts: "${OUTPUT_ARCHIVE}", fingerprint: true
+            }
+        }
+
+        stage('Checkout Parser (RepoC)') {
+            steps {
+                bat "git clone --depth=1 --branch=main %REPOC_URL% repoC"
+            }
+        }
+
+        stage('Run Parser') {
+            steps {
+                bat """
+                    @echo off
+                    setlocal enabledelayedexpansion
+                    set "INPUT_LOG=repoA\\%WARNINGS_FILE%"
+                    set "OUT_CSV=%OUTPUT_CSV%"
+
+                    if exist "!INPUT_LOG!" (
+                        echo => Found log file, running parser...
+                        python repoC\\doxygen_parser.py "!INPUT_LOG!" --output "!OUT_CSV!"
                     ) else (
-                        echo ERROR: html folder not found
-                        exit /b 1
-                    )
-                """
-            }
-        }
-
-        stage('Archive Documentation') {
-            steps {
-                bat """
-                    @echo off
-                    echo =^>^> Archiving doc.tar.gz...
-                """
-                archiveArtifacts artifacts: "${OUTPUT_ARCHIVE}", fingerprint: true, allowEmptyArchive: false
-            }
-        }
-
-        stage('Checkout RepoC') {
-            steps {
-                bat """
-                    @echo off
-                    echo =^>^> Cloning doxygen log parser repository (shallow clone for speed)...
-                    if exist repoC (
-                        rmdir /s /q repoC
-                    )
-                    git clone --depth=1 --branch=main %REPOC_URL% repoC && (
-                        echo Repository cloned successfully
-                    ) || (
-                        echo ERROR: Git clone failed
-                        exit /b 1
-                    )
-                """
-            }
-        }
-
-        stage('Install Python Dependencies') {
-            steps {
-                bat """
-                    @echo off
-                    echo =^>^> Installing Python dependencies...
-                    cd repoC
-                    if exist requirements.txt (
-                        python -m pip install -r requirements.txt
-                        echo =^>^> Dependencies installed
-                    ) else (
-                        echo =^>^> No requirements.txt found, skipping pip install
-                    )
-                    cd ..
-                """
-            }
-        }
-
-        stage('Run Doxygen Log Parser') {
-            steps {
-                bat """
-                    @echo off
-                    echo =^>^> Running Python log parser on warnings file...
-                    
-                    set WARNINGS_PATH=repoA\\%WARNINGS_FILE%
-                    set OUTPUT_PATH=%OUTPUT_CSV%
-
-                    echo Checking file: !WARNINGS_PATH!
-                    
-                    if exist "!WARNINGS_PATH!" (
-                        python repoC\\doxygen_parser.py "!WARNINGS_PATH!" --output "!OUTPUT_PATH!"
-                        echo =^>^> Parser completed. CSV output:
-                        type "!OUTPUT_PATH!"
-                    ) else (
-                        echo WARNING: Warnings file not found at !WARNINGS_PATH!
-                        echo Skipping parser - this is OK if no warnings were generated
+                        echo => No warnings log found at !INPUT_LOG!
                     )
                 """
             }
@@ -174,16 +89,7 @@ pipeline {
 
         stage('Archive CSV Report') {
             steps {
-                bat """
-                    @echo off
-                    echo =^>^> Archiving warnings CSV report...
-                    if exist %OUTPUT_CSV% (
-                        echo CSV file found, archiving...
-                        dir %OUTPUT_CSV%
-                    ) else (
-                        echo CSV file not found - this is OK if parser did not generate output
-                    )
-                """
+                // allowEmptyArchive: true prevents the pipeline from failing if there were 0 warnings
                 archiveArtifacts artifacts: "${OUTPUT_CSV}", allowEmptyArchive: true, fingerprint: true
             }
         }
@@ -191,10 +97,7 @@ pipeline {
 
     post {
         success {
-            echo '✅ PipelineC completed. Documentation and warnings report archived.'
-        }
-        failure {
-            echo '❌ PipelineC failed. Check stage logs above.'
+            echo '✅ Pipeline completed. Check the "Artifacts" tab for your CSV and Docs.'
         }
         always {
             cleanWs()
