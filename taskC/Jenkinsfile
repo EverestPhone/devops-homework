@@ -59,6 +59,7 @@ pipeline {
                     
                     REM Enable warnings
                     powershell -Command "(Get-Content %DOXYGEN_CONFIG%) -replace '^WARN_LOGFILE\\s*=.*', 'WARN_LOGFILE = %WARNINGS_FILE%' | Set-Content %DOXYGEN_CONFIG%"
+                    powershell -Command "(Get-Content %DOXYGEN_CONFIG%) -replace '^EXTRACT_ALL\\s*=.*', 'EXTRACT_ALL = NO' | Set-Content %DOXYGEN_CONFIG%"
                     
                     echo =^>^> Config adjustments applied.
                     cd ..
@@ -156,6 +157,8 @@ pipeline {
                     
                     set WARNINGS_PATH=repoA\\%WARNINGS_FILE%
                     set OUTPUT_PATH=%OUTPUT_CSV%
+
+                    echo Checking file: !WARNINGS_PATH!
                     
                     if exist "!WARNINGS_PATH!" (
                         python repoC\\doxygen_parser.py "!WARNINGS_PATH!" --output "!OUTPUT_PATH!"
