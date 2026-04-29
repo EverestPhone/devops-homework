@@ -1,14 +1,14 @@
 # DevOps Engineer Homework — Task D
 
 **Author:** Phone Myint Mo  
-**Date:** 2026-04-26  
+**Date:** 2026-04-28  
 **Repositories:**
 
 | Repo | Purpose | URL |
 |------|---------|-----|
-| RepoA | Fork of grpc (C++ source) | https://github.com/YOUR_USERNAME/grpc |
-| RepoC | Doxygen log parser (Python) | https://github.com/YOUR_USERNAME/doxygen-log-parser |
-| This repo | Pipelines + README | https://github.com/YOUR_USERNAME/devops-homework |
+| RepoA | Fork of grpc (C++ source) | https://github.com/EverestPhone/grpc |
+| RepoC | Doxygen log parser (Python) | https://github.com/EverestPhone/doxygen-log-parser |
+| This repo | Pipelines + README | https://github.com/EverestPhone/devops-homework |
 
 ---
 
@@ -28,21 +28,40 @@ Both pipelines were tested iteratively using a local Jenkins instance (Docker co
 
 ### Jenkins setup used
 
-- Jenkins LTS running in Docker (`jenkins/jenkins:lts`)
-- Doxygen installed on the Jenkins agent: `apt-get install -y doxygen`
-- Python 3 installed on the Jenkins agent: `apt-get install -y python3 python3-pip`
-- Pipeline created as a **Pipeline (not freestyle)** job, pointing to the `Jenkinsfile` in each branch
+Windows Installation
 
-### Required Jenkins plugins
+```powershell
+# Download Jenkins MSI from https://www.jenkins.io/download/
 
-| Plugin | Purpose |
-|--------|---------|
-| `git` | Cloning repositories |
-| `workflow-aggregator` (Pipeline) | Declarative pipeline support |
-| `archiveArtifacts` | Built-in step, no extra plugin needed |
-| `ws-cleanup` | `cleanWs()` post step |
+# Or use Chocolatey (if installed)
+choco install jenkins
 
----
+# Start Jenkins service
+Start-Service Jenkins
+
+# Access Jenkins
+Start-Process "http://localhost:8080"
+```
+## Required Plugins
+
+### Installation Steps
+
+1. Jenkins > Manage Jenkins > Manage Plugins
+2. Available tab
+3. Search and install:
+
+#### Essential Plugins
+
+```
+- Pipeline (workflow-aggregator)
+- Git plugin
+- GitHub plugin
+- GitHub Branch Source
+- Docker plugin
+- Docker Pipeline
+- ws-cleanup
+- Timestamper
+```
 
 ## How did you test RepoC Python?
 
@@ -170,8 +189,4 @@ Reference: [Git LFS migrate docs](https://github.com/git-lfs/git-lfs/blob/main/d
 | **S3 / Blob Storage** | Upload artifacts to AWS S3 or Azure Blob from the pipeline | No Git involvement; requires cloud credentials in Jenkins |
 | **Nexus / Artifactory** | Enterprise artifact repository — store `doc.tar.gz` with version metadata | Overkill for small projects; ideal for large organisations |
 
-For this homework, **Jenkins `archiveArtifacts`** is the most practical approach since the pipeline already archives `doc.tar.gz` — no Git storage is needed at all.
 
----
-
-*README generated for DevOps Engineer homework submission.*
