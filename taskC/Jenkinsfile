@@ -18,11 +18,7 @@ pipeline {
         stage('Checkout RepoA') {
             steps {
                 deleteDir()
-                bat """
-                    @echo off
-                    echo => Cloning grpc repository...
-                    git clone --depth=1 --branch=master %REPOA_URL% repoA
-                """
+                bat "git clone --depth=1 --branch=master ${REPOA_URL} repoA"
             }
         }
 
@@ -31,11 +27,14 @@ pipeline {
                 bat """
                     @echo off
                     cd repoA
+                    echo Generating Doxyfile...
                     doxygen -g %DOXYGEN_CONFIG%
-                    powershell -Command "(Get-Content %DOXYGEN_CONFIG%) -replace '^INPUT\\s*=.*', 'INPUT = src' | Set-Content %DOXYGEN_CONFIG%"
-                    powershell -Command "(Get-Content %DOXYGEN_CONFIG%) -replace '^GENERATE_HTML\\s*=.*', 'GENERATE_HTML = YES' | Set-Content %DOXYGEN_CONFIG%"
-                    powershell -Command "(Get-Content %DOXYGEN_CONFIG%) -replace '^GENERATE_LATEX\\s*=.*', 'GENERATE_LATEX = NO' | Set-Content %DOXYGEN_CONFIG%"
-                    powershell -Command "(Get-Content %DOXYGEN_CONFIG%) -replace '^WARN_LOGFILE\\s*=.*', 'WARN_LOGFILE = %WARNINGS_FILE%' | Set-Content %DOXYGEN_CONFIG%"
+                    
+                    echo Adjusting Config via PowerShell...
+                    powershell -Command "(Get-Content %DOXYGEN_CONFIG%) -replace '^INPUT\\\\s*=.*', 'INPUT = src' | Set-Content %DOXYGEN_CONFIG%"
+                    powershell -Command "(Get-Content %DOXYGEN_CONFIG%) -replace '^GENERATE_HTML\\\\s*=.*', 'GENERATE_HTML = YES' | Set-Content %DOXYGEN_CONFIG%"
+                    powershell -Command "(Get-Content %DOXYGEN_CONFIG%) -replace '^GENERATE_LATEX\\\\s*=.*', 'GENERATE_LATEX = NO' | Set-Content %DOXYGEN_CONFIG%"
+                    powershell -Command "(Get-Content %DOXYGEN_CONFIG%) -replace '^WARN_LOGFILE\\\\s*=.*', 'WARN_LOGFILE = %WARNINGS_FILE%' | Set-Content %DOXYGEN_CONFIG%"
                 """
             }
         }
@@ -54,18 +53,19 @@ pipeline {
             steps {
                 bat """
                     @echo off
-                    cd repoA
-                    if exist html (
-                        tar -czf ../%OUTPUT_ARCHIVE% html
+                    if exist repoA\\html (
+                        tar -czf %OUTPUT_ARCHIVE% -C repoA html
                     )
                 """
-                archiveArtifacts artifacts: "${OUTPUT_ARCHIVE}", fingerprint: true
+                archiveArtifacts artifacts: "${OUTPUT_ARCHIVE}", fingerprint: true, allowEmptyArchive: true
             }
         }
 
         stage('Checkout Parser (RepoC)') {
             steps {
-                bat "git clone --depth=1 --branch=main %REPOC_URL% repoC"
+                // Remove repoC if it exists to avoid clone errors
+                bat "if exist repoC rmdir /s /q repoC"
+                bat "git clone --depth=1 --branch=main ${REPOC_URL} repoC"
             }
         }
 
@@ -74,14 +74,35 @@ pipeline {
                 bat """
                     @echo off
                     setlocal enabledelayedexpansion
-                    set "INPUT_LOG=repoA\\%WARNINGS_FILE%"
-                    set "OUT_CSV=%OUTPUT_CSV%"
 
+                    REM --- Step 1: Detect Python Command ---
+                    set PY_CMD=none
+                    for %%i in (python.exe py.exe python3.exe) do (
+                        where %%i >nul 2>nul
+                        if !errorlevel! equ 0 (
+                            set PY_CMD=%%i
+                            goto :found
+                        )
+                    )
+                    :found
+
+                    if "!PY_CMD!"=="none" (
+                        echo ERROR: Python not found on this Jenkins Agent. 
+                        echo Please install Python and add it to the System PATH.
+                        exit /b 1
+                    )
+
+                    echo Using Python command: !PY_CMD!
+
+                    REM --- Step 2: Execute Parser ---
+                    set "INPUT_LOG=repoA\\%WARNINGS_FILE%"
+                    
                     if exist "!INPUT_LOG!" (
-                        echo => Found log file, running parser...
-                        python repoC\\doxygen_parser.py "!INPUT_LOG!" --output "!OUT_CSV!"
+                        echo Found log file at !INPUT_LOG!. Parsing...
+                        !PY_CMD! repoC\\doxygen_parser.py "!INPUT_LOG!" --output "%OUTPUT_CSV%"
                     ) else (
-                        echo => No warnings log found at !INPUT_LOG!
+                        echo WARNING: No warnings log found. Creating empty CSV.
+                        echo file,line,message > "%OUTPUT_CSV%"
                     )
                 """
             }
@@ -89,15 +110,17 @@ pipeline {
 
         stage('Archive CSV Report') {
             steps {
-                // allowEmptyArchive: true prevents the pipeline from failing if there were 0 warnings
-                archiveArtifacts artifacts: "${OUTPUT_CSV}", allowEmptyArchive: true, fingerprint: true
+                archiveArtifacts artifacts: "${OUTPUT_CSV}", fingerprint: true, allowEmptyArchive: true
             }
         }
     }
 
     post {
         success {
-            echo '✅ Pipeline completed. Check the "Artifacts" tab for your CSV and Docs.'
+            echo '✅ Pipeline completed successfully!'
+        }
+        failure {
+            echo '❌ Pipeline failed. Please check the Python installation or script logs.'
         }
         always {
             cleanWs()
