@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    options {
+        skipDefaultCheckout(true)
+    }
+
     environment {
         REPOA_URL      = 'https://github.com/EverestPhone/grpc.git'
         REPOC_URL      = 'https://github.com/EverestPhone/doxygen-log-parser.git'
@@ -14,139 +18,169 @@ pipeline {
 
         stage('Checkout RepoA') {
             steps {
-                echo '==> Cloning forked grpc repository (shallow clone for speed)...'
-                dir('repoA') {
-                    deleteDir()
-                    sh """
-                        git clone --depth=1 --branch=master ${env.REPOA_URL} . && echo 'Repository cloned successfully'
-                    """
-                }
+                deleteDir()
+                bat """
+                    @echo off
+                    echo =^>^> Cloning forked grpc repository (shallow clone for speed)...
+                    git clone --depth=1 --branch=master %REPOA_URL% repoA && (
+                        echo Repository cloned successfully
+                    ) || (
+                        echo ERROR: Git clone failed
+                        exit /b 1
+                    )
+                """
             }
         }
 
         stage('Generate Doxygen Config') {
             steps {
-                dir('repoA') {
-                    echo '==> Generating default Doxygen configuration file...'
-                    sh 'doxygen -g ${DOXYGEN_CONFIG}'
-                }
+                bat """
+                    @echo off
+                    echo =^>^> Generating default Doxygen configuration file...
+                    cd repoA
+                    doxygen -g %DOXYGEN_CONFIG%
+                    cd ..
+                """
             }
         }
 
         stage('Adjust Doxygen Config') {
             steps {
-                dir('repoA') {
-                    echo '==> Adjusting config: INPUT=src, HTML only, warnings enabled...'
-                    sh """
-                        # Set INPUT to src folder
-                        sed -i 's|^INPUT\\s*=.*|INPUT = src|' ${DOXYGEN_CONFIG}
-
-                        # Enable HTML output only
-                        sed -i 's|^GENERATE_HTML\\s*=.*|GENERATE_HTML = YES|' ${DOXYGEN_CONFIG}
-                        sed -i 's|^GENERATE_LATEX\\s*=.*|GENERATE_LATEX = NO|' ${DOXYGEN_CONFIG}
-                        sed -i 's|^GENERATE_RTF\\s*=.*|GENERATE_RTF = NO|' ${DOXYGEN_CONFIG}
-                        sed -i 's|^GENERATE_MAN\\s*=.*|GENERATE_MAN = NO|' ${DOXYGEN_CONFIG}
-                        sed -i 's|^GENERATE_XML\\s*=.*|GENERATE_XML = NO|' ${DOXYGEN_CONFIG}
-                        sed -i 's|^GENERATE_DOCBOOK\\s*=.*|GENERATE_DOCBOOK = NO|' ${DOXYGEN_CONFIG}
-
-                        # Enable warnings log output
-                        sed -i 's|^WARNINGS\\s*=.*|WARNINGS = YES|' ${DOXYGEN_CONFIG}
-                        sed -i 's|^WARN_IF_UNDOCUMENTED\\s*=.*|WARN_IF_UNDOCUMENTED = YES|' ${DOXYGEN_CONFIG}
-                        sed -i 's|^WARN_IF_DOC_ERROR\\s*=.*|WARN_IF_DOC_ERROR = YES|' ${DOXYGEN_CONFIG}
-                        sed -i 's|^WARN_LOGFILE\\s*=.*|WARN_LOGFILE = ${WARNINGS_FILE}|' ${DOXYGEN_CONFIG}
-
-                        echo '==> Config adjustments applied.'
-                    """
-                }
+                bat """
+                    @echo off
+                    echo =^>^> Adjusting config: INPUT=src, HTML only, warnings enabled...
+                    cd repoA
+                    
+                    REM Use PowerShell to modify Doxyfile with regex
+                    powershell -Command "(Get-Content %DOXYGEN_CONFIG%) -replace '^INPUT\\s*=.*', 'INPUT = src' | Set-Content %DOXYGEN_CONFIG%"
+                    powershell -Command "(Get-Content %DOXYGEN_CONFIG%) -replace '^GENERATE_HTML\\s*=.*', 'GENERATE_HTML = YES' | Set-Content %DOXYGEN_CONFIG%"
+                    powershell -Command "(Get-Content %DOXYGEN_CONFIG%) -replace '^GENERATE_LATEX\\s*=.*', 'GENERATE_LATEX = NO' | Set-Content %DOXYGEN_CONFIG%"
+                    powershell -Command "(Get-Content %DOXYGEN_CONFIG%) -replace '^GENERATE_XML\\s*=.*', 'GENERATE_XML = NO' | Set-Content %DOXYGEN_CONFIG%"
+                    
+                    REM Enable warnings
+                    powershell -Command "(Get-Content %DOXYGEN_CONFIG%) -replace '^WARN_LOGFILE\\s*=.*', 'WARN_LOGFILE = %WARNINGS_FILE%' | Set-Content %DOXYGEN_CONFIG%"
+                    
+                    echo =^>^> Config adjustments applied.
+                    cd ..
+                """
             }
         }
 
         stage('Run Doxygen') {
             steps {
-                dir('repoA') {
-                    echo '==> Running Doxygen...'
-                    sh 'doxygen ${DOXYGEN_CONFIG}'
-                    sh """
-                        echo '==> Warnings file:'
-                        ls -lh ${WARNINGS_FILE} || echo 'WARNING: No warnings file generated.'
-                    """
-                }
+                bat """
+                    @echo off
+                    echo =^>^> Running Doxygen...
+                    cd repoA
+                    doxygen %DOXYGEN_CONFIG%
+                    if exist %WARNINGS_FILE% (
+                        echo =^>^> Warnings file found
+                        dir %WARNINGS_FILE%
+                    ) else (
+                        echo WARNING: No warnings file generated
+                    )
+                    cd ..
+                """
             }
         }
 
         stage('Pack Documentation') {
             steps {
-                dir('repoA') {
-                    echo '==> Packing HTML output into doc.tar.gz...'
-                    sh """
-                        if [ -d html ]; then
-                            tar -czf ../${OUTPUT_ARCHIVE} html/
-                            echo '==> Archive created.'
-                        else
-                            echo 'ERROR: html/ not found.'
-                            exit 1
-                        fi
-                    """
-                }
+                bat """
+                    @echo off
+                    echo =^>^> Packing HTML output into doc.tar.gz...
+                    cd repoA
+                    if exist html (
+                        tar -czf ../%OUTPUT_ARCHIVE% html
+                        echo =^>^> Archive created
+                        cd ..
+                        dir %OUTPUT_ARCHIVE%
+                    ) else (
+                        echo ERROR: html folder not found
+                        exit /b 1
+                    )
+                """
             }
         }
 
         stage('Archive Documentation') {
             steps {
-                echo '==> Archiving doc.tar.gz...'
-                archiveArtifacts artifacts: "${OUTPUT_ARCHIVE}", fingerprint: true
+                bat """
+                    @echo off
+                    echo =^>^> Archiving doc.tar.gz...
+                """
+                archiveArtifacts artifacts: "${OUTPUT_ARCHIVE}", fingerprint: true, allowEmptyArchive: false
             }
         }
 
         stage('Checkout RepoC') {
             steps {
-                echo '==> Cloning doxygen log parser repository (shallow clone for speed)...'
-                dir('repoC') {
-                    deleteDir()
-                    sh """
-                        git clone --depth=1 --branch=main ${env.REPOC_URL} . && echo 'RepoC cloned successfully'
-                    """
-                }
+                bat """
+                    @echo off
+                    echo =^>^> Cloning doxygen log parser repository (shallow clone for speed)...
+                    if exist repoC (
+                        rmdir /s /q repoC
+                    )
+                    git clone --depth=1 --branch=main %REPOC_URL% repoC && (
+                        echo Repository cloned successfully
+                    ) || (
+                        echo ERROR: Git clone failed
+                        exit /b 1
+                    )
+                """
             }
         }
 
         stage('Install Python Dependencies') {
             steps {
-                dir('repoC') {
-                    echo '==> Installing Python dependencies...'
-                    sh """
-                        if [ -f requirements.txt ]; then
-                            pip3 install --user -r requirements.txt
-                            echo '==> Dependencies installed.'
-                        else
-                            echo '==> No requirements.txt found, skipping pip install.'
-                        fi
-                    """
-                }
+                bat """
+                    @echo off
+                    echo =^>^> Installing Python dependencies...
+                    cd repoC
+                    if exist requirements.txt (
+                        python -m pip install -r requirements.txt
+                        echo =^>^> Dependencies installed
+                    ) else (
+                        echo =^>^> No requirements.txt found, skipping pip install
+                    )
+                    cd ..
+                """
             }
         }
 
         stage('Run Doxygen Log Parser') {
             steps {
-                echo '==> Running Python log parser on warnings file...'
-                sh """
-                    WARNINGS_PATH=\$(pwd)/repoA/${WARNINGS_FILE}
-                    OUTPUT_PATH=\$(pwd)/${OUTPUT_CSV}
-
-                    if [ -f "\$WARNINGS_PATH" ]; then
-                        python3 repoC/doxygen_parser.py "\$WARNINGS_PATH" --output "\$OUTPUT_PATH"
-                        echo '==> Parser completed. CSV output:'
-                        cat "\$OUTPUT_PATH"
-                    else
-                        echo 'WARNING: Warnings file not found. Skipping parser.'
-                    fi
+                bat """
+                    @echo off
+                    echo =^>^> Running Python log parser on warnings file...
+                    
+                    set WARNINGS_PATH=repoA\\%WARNINGS_FILE%
+                    set OUTPUT_PATH=%OUTPUT_CSV%
+                    
+                    if exist "!WARNINGS_PATH!" (
+                        python repoC\\doxygen_parser.py "!WARNINGS_PATH!" --output "!OUTPUT_PATH!"
+                        echo =^>^> Parser completed. CSV output:
+                        type "!OUTPUT_PATH!"
+                    ) else (
+                        echo WARNING: Warnings file not found at !WARNINGS_PATH!
+                        echo Skipping parser - this is OK if no warnings were generated
+                    )
                 """
             }
         }
 
         stage('Archive CSV Report') {
             steps {
-                echo '==> Archiving warnings CSV report...'
+                bat """
+                    @echo off
+                    echo =^>^> Archiving warnings CSV report...
+                    if exist %OUTPUT_CSV% (
+                        echo CSV file found, archiving...
+                        dir %OUTPUT_CSV%
+                    ) else (
+                        echo CSV file not found - this is OK if parser did not generate output
+                    )
+                """
                 archiveArtifacts artifacts: "${OUTPUT_CSV}", allowEmptyArchive: true, fingerprint: true
             }
         }
