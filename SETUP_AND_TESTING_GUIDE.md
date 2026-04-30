@@ -260,7 +260,8 @@ cd repoC
 # Basic run
 python -m pytest test_doxygen_parser.py -v
 
-<img width="975" height="421" alt="image" src="https://github.com/user-attachments/assets/6feced7c-ce08-44a9-8cd7-59c2f8bc1a61" />
+<img width="1804" height="948" alt="image" src="https://github.com/user-attachments/assets/db6f69a4-96a8-4098-ba13-d75340e8312d" />
+
 
 # sample log 
 python doxygen_parser.py sample_warnings.log
