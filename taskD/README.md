@@ -75,15 +75,68 @@ Run tests with:
 
 ```bash
 python -m pytest test_doxygen_parser.py -v
-
+python doxygen_parser.py sample_warnings.log
+python doxygen_parser.py sample_warnings.log --output sample_output.csv
 python -m pytest test_doxygen_parser.py --cov=. --cov-report=html
 ```
 
-testing 
-<img width="975" height="421" alt="image" src="https://github.com/user-attachments/assets/077c943c-0ebc-464f-abbf-44e3f6ff9a99" />
+# Basic run
+python -m pytest test_doxygen_parser.py -v
 
-python -m pytest test_doxygen_parser.py --cov=. --cov-report=html
-<img width="975" height="562" alt="image" src="https://github.com/user-attachments/assets/5e9f520d-6c86-480c-a721-8415c94bfcfb" />
+<img width="1804" height="948" alt="image" src="https://github.com/user-attachments/assets/db6f69a4-96a8-4098-ba13-d75340e8312d" />
+
+
+# sample log 
+python doxygen_parser.py sample_warnings.log
+
+<img width="975" height="339" alt="image" src="https://github.com/user-attachments/assets/a137021e-3b11-48b4-9a9f-c600df0bcb4a" />
+
+# sample output CSV
+
+<img width="975" height="413" alt="image" src="https://github.com/user-attachments/assets/119b946e-9596-4e8e-ae8b-14ef4b5894d3" />
+
+<img width="975" height="412" alt="image" src="https://github.com/user-attachments/assets/bfc38081-9e0a-412f-b51b-5e19016d24e6" />
+
+
+# With coverage report
+python -m pytest test_doxygen_parser.py --cov=. --cov-report=term-missing --cov-report=html
+
+<img width="975" height="562" alt="image" src="https://github.com/user-attachments/assets/576e380e-2865-4f3b-8d5c-ea139a5c6a00" />
+
+<img width="975" height="472" alt="image" src="https://github.com/user-attachments/assets/14ca17b3-048f-409a-97de-b5ceb8afa9b6" />
+
+
+### Expected Output
+
+```
+test_doxygen_parser.py::TestParseWarnings::test_standard_warning_with_line_number PASSED
+test_doxygen_parser.py::TestParseWarnings::test_standard_warning_without_line_number PASSED
+test_doxygen_parser.py::TestParseWarnings::test_non_standard_lines_are_ignored PASSED
+test_doxygen_parser.py::TestParseWarnings::test_empty_log_returns_empty_list PASSED
+test_doxygen_parser.py::TestParseWarnings::test_multiple_warnings_parsed PASSED
+test_doxygen_parser.py::TestParseWarnings::test_missing_file_raises_exit PASSED
+test_doxygen_parser.py::TestWriteCsv::test_csv_has_correct_headers PASSED
+test_doxygen_parser.py::TestWriteCsv::test_csv_rows_match_input PASSED
+test_doxygen_parser.py::TestWriteCsv::test_empty_records_writes_header_only PASSED
+
+============================== 9 passed in 0.06s ==============================
+```
+
+### Test Coverage
+
+| Test | What it verifies |
+|------|-----------------|
+| `test_standard_warning_with_line_number` | Correctly parses file, line, and message from a full warning line |
+| `test_standard_warning_without_line_number` | Handles warnings with no line number (empty `Line` field) |
+| `test_non_standard_lines_are_ignored` | Doxygen banners, info lines, and blank lines are silently skipped |
+| `test_empty_log_returns_empty_list` | Empty input produces empty output without errors |
+| `test_multiple_warnings_parsed` | Multiple warnings in one file are all captured |
+| `test_missing_file_raises_exit` | Non-existent file causes a clean `SystemExit` with error message |
+| `test_csv_has_correct_headers` | Output CSV always has the correct column headers |
+| `test_csv_rows_match_input` | CSV rows match the parsed input exactly |
+| `test_empty_records_writes_header_only` | Zero warnings produces a valid CSV with headers only |
+
+---
 
 ### Test cases covered
 
