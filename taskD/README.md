@@ -122,21 +122,6 @@ test_doxygen_parser.py::TestWriteCsv::test_empty_records_writes_header_only PASS
 ============================== 9 passed in 0.06s ==============================
 ```
 
-### Test Coverage
-
-| Test | What it verifies |
-|------|-----------------|
-| `test_standard_warning_with_line_number` | Correctly parses file, line, and message from a full warning line |
-| `test_standard_warning_without_line_number` | Handles warnings with no line number (empty `Line` field) |
-| `test_non_standard_lines_are_ignored` | Doxygen banners, info lines, and blank lines are silently skipped |
-| `test_empty_log_returns_empty_list` | Empty input produces empty output without errors |
-| `test_multiple_warnings_parsed` | Multiple warnings in one file are all captured |
-| `test_missing_file_raises_exit` | Non-existent file causes a clean `SystemExit` with error message |
-| `test_csv_has_correct_headers` | Output CSV always has the correct column headers |
-| `test_csv_rows_match_input` | CSV rows match the parsed input exactly |
-| `test_empty_records_writes_header_only` | Zero warnings produces a valid CSV with headers only |
-
----
 
 ### Test cases covered
 
