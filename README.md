@@ -7,11 +7,12 @@ CI/CD pipelines and documentation for the DevOps Engineer homework assignment.
 ```
 devops-homework/
 ├── taskB/
-│   └── Jenkinsfile          # PipelineB — Doxygen doc generation + artifact
+│   └── Jenkinsfile            # PipelineB — Doxygen doc generation + artifact
 ├── taskC/
-│   └── Jenkinsfile          # PipelineC — Extends B + Python warnings parser
+│   └── Jenkinsfile            # PipelineC — Extends B + Python warnings parser
 └── taskD/
-    └── README.md            # Written answers to homework questions
+│   └── README.md              # Written answers to homework questions
+└── SETUP_AND_TESTING_GUIDE.md # Showing the deatil results and setup
 ```
 
 ## Branch layout
