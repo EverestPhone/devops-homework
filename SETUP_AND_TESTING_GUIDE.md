@@ -200,6 +200,38 @@ For each pipeline job (PipelineB, PipelineC):
 5. Branch: main
 6. Script Path: `taskB/Jenkinsfile` or `taskC/Jenkinsfile`
 
+<img width="2024" height="1632" alt="image" src="https://github.com/user-attachments/assets/06264151-172d-483b-8e45-3d468fc4202e" />
+
+<img width="1998" height="1622" alt="image" src="https://github.com/user-attachments/assets/c3f74d2f-fe68-4aa6-8982-db08fad41605" />
+
+### Jenkins PipelineB-Doxygen steps 
+
+<img width="2872" height="1314" alt="image" src="https://github.com/user-attachments/assets/3f3e5bfe-2daa-4aad-80dc-e227fc269fbe" />
+
+### Jenkins PipelineB-Doxygen Console Output
+
+<img width="2276" height="824" alt="image" src="https://github.com/user-attachments/assets/ac18d803-b2b3-498d-92af-dd5a9ae6405c" />
+
+<img width="1890" height="1550" alt="image" src="https://github.com/user-attachments/assets/f4f2830d-8aaa-4320-a89d-db83bad78c7d" />
+
+### Jenkins PipelineB-Doxygen status
+
+<img width="1956" height="994" alt="image" src="https://github.com/user-attachments/assets/895f3d34-9961-4677-b284-484f427c2f26" />
+
+### Jenkins PipelineC-DoxygenWarnings steps
+
+<img width="2876" height="1378" alt="image" src="https://github.com/user-attachments/assets/bb8d4f03-9a47-425b-bf0c-08367e527b95" />
+
+### Jenkins PipelineC-DoxygenWarnings Console Output
+
+<img width="1878" height="1562" alt="image" src="https://github.com/user-attachments/assets/87450c6d-a32e-4c48-babe-32beda338695" />
+
+### Jenkins PipelineC-DoxygenWarnings status
+
+<img width="2108" height="1284" alt="image" src="https://github.com/user-attachments/assets/c191b1e6-fe29-40e1-b3ea-b8bda80d6a20" />
+
+
+
 ### Jenkins Checklist
 
 - [ ] Jenkins running on port 8080
@@ -213,6 +245,11 @@ For each pipeline job (PipelineB, PipelineC):
 
 ---
 
+
+### Token for Jenkins 
+
+<img width="2872" height="948" alt="image" src="https://github.com/user-attachments/assets/66088730-7cad-4fff-8787-c174e4e95caa" />
+
 ## Unit Testing
 
 ### Running All Tests
@@ -223,19 +260,27 @@ cd repoC
 # Basic run
 python -m pytest test_doxygen_parser.py -v
 
-# With detailed output
-python -m pytest test_doxygen_parser.py -vv
+<img width="975" height="421" alt="image" src="https://github.com/user-attachments/assets/6feced7c-ce08-44a9-8cd7-59c2f8bc1a61" />
+
+# sample log 
+python doxygen_parser.py sample_warnings.log
+
+<img width="975" height="339" alt="image" src="https://github.com/user-attachments/assets/a137021e-3b11-48b4-9a9f-c600df0bcb4a" />
+
+# sample output CSV
+
+<img width="975" height="413" alt="image" src="https://github.com/user-attachments/assets/119b946e-9596-4e8e-ae8b-14ef4b5894d3" />
+
+<img width="975" height="412" alt="image" src="https://github.com/user-attachments/assets/bfc38081-9e0a-412f-b51b-5e19016d24e6" />
+
 
 # With coverage report
 python -m pytest test_doxygen_parser.py --cov=. --cov-report=term-missing --cov-report=html
 
-# Run specific test class
-python -m pytest test_doxygen_parser.py::TestParseWarnings -v
-python -m pytest test_doxygen_parser.py::TestWriteCsv -v
+<img width="975" height="562" alt="image" src="https://github.com/user-attachments/assets/576e380e-2865-4f3b-8d5c-ea139a5c6a00" />
 
-# Run a single test
-python -m pytest test_doxygen_parser.py::TestParseWarnings::test_standard_warning_with_line_number -v
-```
+<img width="975" height="472" alt="image" src="https://github.com/user-attachments/assets/14ca17b3-048f-409a-97de-b5ceb8afa9b6" />
+
 
 ### Expected Output
 
@@ -269,133 +314,14 @@ test_doxygen_parser.py::TestWriteCsv::test_empty_records_writes_header_only PASS
 
 ---
 
-## Integration Testing
-
-### Test RepoC with Real Doxygen Output
-
-#### Step 1: Generate Sample Doxygen Warnings
-
-```bash
-# Clone RepoA
-git clone https://github.com/EverestPhone/grpc.git repoA
-cd repoA
-
-# Generate a Doxyfile and set input to src
-doxygen -g Doxyfile
-sed -i 's/^INPUT.*/INPUT = src/' Doxyfile
-sed -i 's/^WARN_FILE.*/WARN_FILE = warnings.log/' Doxyfile
-
-# Run Doxygen and capture warnings
-doxygen Doxyfile 2>&1 | tee warnings.log
-```
-
-#### Step 2: Run Parser on Real Warnings
-
-```bash
-cd ../repoC
-python doxygen_parser.py ../repoA/warnings.log --output real_warnings.csv
-
-# Verify
-head -20 real_warnings.csv
-wc -l real_warnings.csv
-```
-
-#### Step 3: Validate CSV Format
-
-```bash
-python << 'EOF'
-import csv
-with open('real_warnings.csv') as f:
-    reader = csv.DictReader(f)
-    print(f"Headers: {reader.fieldnames}")
-    rows = list(reader)
-    print(f"Total warnings: {len(rows)}")
-    if rows:
-        print(f"First record: {rows[0]}")
-        print(f"Last record:  {rows[-1]}")
-EOF
-```
-
----
-
-## Pipeline Testing
-
-### Simulate PipelineB Locally (No Jenkins Required)
-
-```bash
-#!/bin/bash
-set -e
-
-WORKSPACE=$(mktemp -d)
-cd $WORKSPACE
-
-# Stage 1: Clone RepoA
-git clone https://github.com/EverestPhone/grpc.git repoA
-cd repoA
-
-# Stage 2: Generate Doxygen config
-doxygen -g Doxyfile
-
-# Stage 3: Adjust config
-sed -i 's/^INPUT.*/INPUT = src/' Doxyfile
-sed -i 's/^GENERATE_HTML.*/GENERATE_HTML = YES/' Doxyfile
-sed -i 's/^GENERATE_LATEX.*/GENERATE_LATEX = NO/' Doxyfile
-sed -i 's/^GENERATE_MAN.*/GENERATE_MAN = NO/' Doxyfile
-
-# Stage 4: Run Doxygen
-doxygen Doxyfile
-
-# Stage 5: Pack output
-if [ -d html ]; then
-  tar -czf doc.tar.gz html/
-  echo "✓ doc.tar.gz created"
-else
-  echo "✗ html/ directory not found" && exit 1
-fi
-
-ls -lh doc.tar.gz
-```
-
-### Simulate PipelineC Locally (No Jenkins Required)
-
-```bash
-#!/bin/bash
-set -e
-
-WORKSPACE=$(mktemp -d)
-cd $WORKSPACE
-
-# Run PipelineB stages (as above)
-git clone https://github.com/EverestPhone/grpc.git repoA
-cd repoA
-doxygen -g Doxyfile
-sed -i 's/^INPUT.*/INPUT = src/' Doxyfile
-sed -i 's/^GENERATE_HTML.*/GENERATE_HTML = YES/' Doxyfile
-sed -i 's/^WARN_FILE.*/WARN_FILE = doxygen_warnings.log/' Doxyfile
-doxygen Doxyfile
-
-# Clone RepoC and install dependencies
-cd ..
-git clone https://github.com/EverestPhone/doxygen-log-parser.git repoC
-cd repoC
-pip install -r requirements.txt
-
-# Run the parser
-python doxygen_parser.py ../repoA/doxygen_warnings.log --output warnings.csv
-
-echo "✓ Warnings parsed"
-wc -l warnings.csv
-head -5 warnings.csv
-```
-
----
-
 ## Manual Testing Procedures
 
-### Test 1: Basic Parser Functionality
+### Test 1: Basic Parser Functionality sampleoutput.csv
 
 ```bash
 cd repoC
+
+<img width="2688" height="756" alt="image" src="https://github.com/user-attachments/assets/b0a0a0f3-4598-416f-b604-c3bd2970d59f" />
 
 cat > test.log << 'EOF'
 Doxygen version 1.9.8
@@ -405,12 +331,15 @@ Searching for include files...
 /src/header.h: warning: Function missing docs.
 EOF
 
-python doxygen_parser.py test.log --output test_output.csv
-cat test_output.csv
+python doxygen_parser.py test.log --output sample_output.csv
+type sample_output.csv
 # Expected: header row + 2 warning rows
 ```
 
 ### Test 2: Edge Cases
+
+<img width="975" height="572" alt="image" src="https://github.com/user-attachments/assets/280c2286-90e5-4e5b-963c-59e81bf91da1" />
+
 
 ```bash
 # Empty log
@@ -458,26 +387,42 @@ python doxygen_parser.py utf8.log --output utf8_out.csv
 
 ## Performance Testing
 
+<img width="1804" height="552" alt="image" src="https://github.com/user-attachments/assets/d4617df9-b921-48af-a834-8477e4cefc81" />
+
 ```bash
 cd repoC
 
-python << 'EOF'
 import time
-from doxygen_parser import parse_warnings
+import os
+# Ensure you are in the directory where doxygen_parser.py exists
+try:
+    from doxygen_parser import parse_warnings
+except ImportError:
+    print("Error: doxygen_parser.py not found in this folder!")
+    exit(1)
 
-# Create a large test file
+# 1. Create a large test file (10,000 lines)
+print("Generating large test log...")
 with open('large_test.log', 'w') as f:
     f.write("Doxygen version 1.9.8\n")
     for i in range(10000):
         f.write(f"/src/file{i}.cpp:{i}: warning: Test warning {i}\n")
 
+# 2. Run the performance test
 start = time.time()
 records = parse_warnings('large_test.log')
 elapsed = time.time() - start
 
+# 3. Print results
+print("-" * 30)
 print(f"Parsed {len(records)} warnings in {elapsed:.3f}s")
 print(f"Average: {1000*elapsed/len(records):.3f}ms per warning")
-EOF
+print("-" * 30)
+
+# Optional: Cleanup
+# os.remove('large_test.log')
+
+Save this code as "perf_test.py" and run python perf_test.py
 ```
 
 **Expected performance benchmarks:**
