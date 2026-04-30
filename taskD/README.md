@@ -69,13 +69,21 @@ Start-Process "http://localhost:8080"
 
 The parser (`doxygen_parser.py`) was tested using **pytest** with unit tests covering both the parsing logic and CSV output.
 
-Test file: [`test_doxygen_parser.py`](https://github.com/YOUR_USERNAME/doxygen-log-parser/blob/main/test_doxygen_parser.py)
+Test file: [`test_doxygen_parser.py`](https://github.com/EverestPhone/doxygen-log-parser/blob/main/test_doxygen_parser.py)
 
 Run tests with:
 
 ```bash
-python3 -m pytest test_doxygen_parser.py -v
+python -m pytest test_doxygen_parser.py -v
+
+python -m pytest test_doxygen_parser.py --cov=. --cov-report=html
 ```
+
+testing 
+<img width="975" height="421" alt="image" src="https://github.com/user-attachments/assets/077c943c-0ebc-464f-abbf-44e3f6ff9a99" />
+
+python -m pytest test_doxygen_parser.py --cov=. --cov-report=html
+<img width="975" height="562" alt="image" src="https://github.com/user-attachments/assets/5e9f520d-6c86-480c-a721-8415c94bfcfb" />
 
 ### Test cases covered
 
