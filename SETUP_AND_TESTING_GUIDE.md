@@ -254,7 +254,7 @@ For each pipeline job (PipelineB, PipelineC):
 
 ### Running All Tests
 
-```bash
+bash
 cd repoC
 
 # Basic run
