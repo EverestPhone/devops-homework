@@ -315,6 +315,38 @@ test_doxygen_parser.py::TestWriteCsv::test_empty_records_writes_header_only PASS
 
 ---
 
+## Integration Testing
+
+### Test RepoC with Real Doxygen Output
+
+#### Step 1: Generate Sample Doxygen Warnings
+
+bash
+# Clone RepoA
+git clone https://github.com/EverestPhone/grpc.git repoA
+cd repoA
+
+# Generate a Doxyfile and set input to src
+doxygen -g Doxyfile
+sed -i 's/^INPUT.*/INPUT = src/' Doxyfile
+sed -i 's/^WARN_FILE.*/WARN_FILE = warnings.log/' Doxyfile
+
+<img width="975" height="476" alt="image" src="https://github.com/user-attachments/assets/79c5a29f-96e1-4597-a4e0-f385b0ac850d" />
+
+# Run Doxygen and capture warnings
+doxygen Doxyfile 2>&1 | tee warnings.log
+
+<img width="975" height="462" alt="image" src="https://github.com/user-attachments/assets/4be12a67-66b3-41d4-bc5e-93cc74ad7b40" />
+
+#### Step 2: Run Parser on Real Warnings
+
+bash
+cd ../repoC
+python doxygen_parser.py /c/PMM/DevOps\ Task/devops-homework/repoc/repoA/warnings.log --output real_warnings.csv
+
+<img width="975" height="330" alt="image" src="https://github.com/user-attachments/assets/8cbf28e0-56b5-45bf-b3ae-23c1cd2b9584" />
+
+
 ## Manual Testing Procedures
 
 ### Test 1: Basic Parser Functionality sampleoutput.csv
