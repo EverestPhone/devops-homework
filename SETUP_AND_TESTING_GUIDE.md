@@ -282,6 +282,12 @@ python -m pytest test_doxygen_parser.py --cov=. --cov-report=term-missing --cov-
 
 <img width="975" height="472" alt="image" src="https://github.com/user-attachments/assets/14ca17b3-048f-409a-97de-b5ceb8afa9b6" />
 
+<img width="2767" height="1563" alt="image" src="https://github.com/user-attachments/assets/9943f5e1-5563-4a6e-b380-603b41a8438c" />
+
+<img width="2798" height="973" alt="image" src="https://github.com/user-attachments/assets/68176ffa-10ab-45db-9ba0-501e567b3227" />
+
+
+
 
 ### Expected Output
 
